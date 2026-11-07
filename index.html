@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<link rel="manifest" href="./manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>BIKI Valladolid</title>
+
+<meta name="theme-color" content="#176b45">
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7f5;
+  color: #20332a;
+}
+
+header {
+  background: #176b45;
+  color: white;
+  padding: 25px 20px;
+  border-radius: 0 0 25px 25px;
+}
+
+main {
+  max-width: 700px;
+  margin: auto;
+  padding: 18px;
+}
+
+h1 {
+  font-size: 27px;
+  margin: 10px 0;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px #00000008;
+}
+
+.numero {
+  font-size: 34px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  background: #176b45;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.estacion {
+  background: white;
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.disponibilidad {
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.verde {
+  background: #e8f5ec;
+  color: #16803c;
+}
+
+.naranja {
+  background: #fff3d8;
+  color: #b66a00;
+}
+
+.rojo {
+  background: #fdeaea;
+  color: #c62828;
+}
+
+#estado {
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <div>VALLADOLID · BIKI</div>
+  <h1>Bicicletas disponibles</h1>
+  <div id="estado">Conectando...</div>
+</header>
+
+<main>
+
+  <div class="resumen">
+
+    <div class="card">
+      <div>Bicicletas</div>
+      <div class="numero" id="bicis">—</div>
+    </div>
+
+    <div class="card">
+      <div>Anclajes libres</div>
+      <div class="numero" id="anclajes">—</div>
+    </div>
+
+  </div>
+
+  <button id="actualizar">↻ Actualizar ahora</button>
+
+  <h2>Estaciones</h2>
+
+  <div id="estaciones">
+    Cargando estaciones...
+  </div>
+
+</main>
+
+<script>
+
+const URL_INFO =
+"https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_information";
+
+const URL_STATUS =
+"https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_status";
+
+async function actualizar() {
+
+  const estado = document.getElementById("estado");
+  const lista = document.getElementById("estaciones");
+
+  estado.textContent = "Actualizando...";
+
+  try {
+
+    const [r1, r2] = await Promise.all([
+      fetch(URL_INFO),
+      fetch(URL_STATUS)
+    ]);
+
+    if (!r1.ok || !r2.ok) {
+      throw new Error("Error de conexión");
+    }
+
+    const [info, status] = await Promise.all([
+      r1.json(),
+      r2.json()
+    ]);
+
+    const mapa = new Map(
+      status.data.stations.map(s => [
+        String(s.station_id), s
+      ])
+    );
+
+    const datos = info.data.stations.map(e => {
+
+      const s = mapa.get(String(e.station_id)) || {};
+
+      return {
+        nombre: e.name || "Estación",
+        bicis: Number(s.num_bikes_available || 0),
+        anclajes: Number(s.num_docks_available || 0)
+      };
+
+    });
+
+    datos.sort((a, b) => b.bicis - a.bicis);
+
+    document.getElementById("bicis").textContent =
+      datos.reduce((a, e) => a + e.bicis, 0);
+
+    document.getElementById("anclajes").textContent =
+      datos.reduce((a, e) => a + e.anclajes, 0);
+
+    lista.innerHTML = "";
+
+    for (const e of datos) {
+
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "estacion";
+
+      const nombre = document.createElement("div");
+
+      nombre.style.fontWeight = "bold";
+      nombre.textContent = e.nombre;
+
+      const detalle = document.createElement("div");
+
+      detalle.style.fontSize = "12px";
+      detalle.style.marginTop = "6px";
+      detalle.textContent =
+        e.anclajes + " anclajes libres";
+
+      nombre.appendChild(detalle);
+
+      const disponible = document.createElement("div");
+
+      disponible.className = "disponibilidad";
+
+      if (e.bicis === 0) {
+        disponible.classList.add("rojo");
+      } else if (e.bicis <= 3) {
+        disponible.classList.add("naranja");
+      } else {
+        disponible.classList.add("verde");
+      }
+
+      disponible.textContent = e.bicis + " bicis";
+
+      tarjeta.appendChild(nombre);
+      tarjeta.appendChild(disponible);
+
+      lista.appendChild(tarjeta);
+
+    }
+
+    estado.textContent =
+      "Actualizado: " +
+      new Date().toLocaleTimeString("es-ES");
+
+  } catch (error) {
+
+    estado.textContent = "Error de conexión";
+
+    lista.textContent =
+      "No se pudieron cargar las estaciones.";
+
+    console.error(error);
+
+  }
+
+}
+
+document.getElementById("actualizar")
+  .addEventListener("click", actualizar);
+
+actualizar();
+
+setInterval(actualizar, 30000);
+
+</script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("BIKI: service worker registrado"))
+      .catch(error => console.error("Error SW:", error));
+  });
+}
+</script>
+
+</body>
+</html>
