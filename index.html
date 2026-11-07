@@ -1,352 +1,390 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<link rel="manifest" href="./manifest.json">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#087f5b">
+  <title>BIKI Valladolid</title>
 
-<title>BIKI Valladolid</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
-<meta name="theme-color" content="#176b45">
+  <style>
+    * { box-sizing: border-box; }
 
-<link rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: Arial, sans-serif;
+      background: #f2f6f4;
+      color: #18332a;
+    }
 
-<style>
-* {
-  box-sizing: border-box;
-}
+    header {
+      max-width: 1000px;
+      margin: 0 auto 18px;
+      padding: 18px;
+      border-radius: 16px;
+      color: white;
+      background: #087f5b;
+    }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f7f5;
-  color: #20332a;
-}
+    header h1 { margin: 0 0 6px; font-size: 25px; }
+    header p { margin: 0; opacity: .9; }
+    main { max-width: 1000px; margin: auto; }
 
-header {
-  background: #176b45;
-  color: white;
-  padding: 25px 20px;
-  border-radius: 0 0 25px 25px;
-}
+    #estado {
+      margin: 12px 0;
+      color: #52665d;
+      font-size: 14px;
+    }
 
-main {
-  max-width: 700px;
-  margin: auto;
-  padding: 18px;
-}
+    .resumen {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0;
+    }
 
-h1 {
-  font-size: 27px;
-  margin: 10px 0;
-}
+    .tarjeta {
+      padding: 16px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px #0000000c;
+    }
 
-.resumen {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 20px 0;
-}
+    .tarjeta span {
+      display: block;
+      color: #63766d;
+      font-size: 14px;
+    }
 
-.card {
-  background: white;
-  padding: 18px;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px #00000008;
-}
+    .tarjeta strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 30px;
+      color: #087f5b;
+    }
 
-.numero {
-  font-size: 34px;
-  font-weight: bold;
-  margin-top: 8px;
-}
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      background: #087f5b;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
 
-button {
-  width: 100%;
-  padding: 15px;
-  background: #176b45;
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  cursor: pointer;
-}
+    h2 { margin: 24px 0 12px; font-size: 20px; }
 
-.estacion {
-  background: white;
-  padding: 16px;
-  border-radius: 14px;
-  margin-bottom: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
+    #buscarEstacion {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #cbd8d1;
+      border-radius: 10px;
+      font-size: 16px;
+      margin-bottom: 12px;
+      background: white;
+    }
 
-.disponibilidad {
-  text-align: center;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-weight: bold;
-}
+    #map {
+      height: 400px;
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #e2e9e5;
+    }
 
-.verde {
-  background: #e8f5ec;
-  color: #16803c;
-}
+    #estaciones {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
 
-.naranja {
-  background: #fff3d8;
-  color: #b66a00;
-}
+    .estacion {
+      background: white;
+      border-radius: 12px;
+      padding: 13px;
+      box-shadow: 0 2px 7px #0000000b;
+      cursor: pointer;
+    }
 
-.rojo {
-  background: #fdeaea;
-  color: #c62828;
-}
+    .estacion strong { display: block; margin-bottom: 7px; }
+    .detalle { color: #52665d; font-size: 14px; }
+    .sin-resultados { color: #63766d; }
 
-#map {
-    height: 400px;
-    width: 100%;
-    border-radius: 16px;
-    margin: 15px 0 25px;
-    z-index: 1;
-}
-
-#estado {
-  font-size: 13px;
-  margin-top: 12px;
-}
-
-</style>
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      #map { height: 350px; }
+    }
+  </style>
 </head>
 
 <body>
+  <header>
+    <h1>VALLADOLID · BIKI</h1>
+    <p>Consulta bicicletas y estaciones en tiempo real</p>
+  </header>
 
-<header>
-  <div>VALLADOLID · BIKI</div>
-  <h1>Bicicletas disponibles</h1>
-  <div id="estado">Conectando...</div>
-</header>
+  <main>
+    <div id="estado">Conectando con BIKI...</div>
 
-<main>
-
-  <div class="resumen">
-
-    <div class="card">
-      <div>Bicicletas</div>
-      <div class="numero" id="bicis">—</div>
+    <div class="resumen">
+      <div class="tarjeta">
+        <span>Bicicletas disponibles</span>
+        <strong id="bicis">—</strong>
+      </div>
+      <div class="tarjeta">
+        <span>Anclajes libres</span>
+        <strong id="anclajes">—</strong>
+      </div>
     </div>
 
-    <div class="card">
-      <div>Anclajes libres</div>
-      <div class="numero" id="anclajes">—</div>
-    </div>
+    <button id="actualizar" type="button">Actualizar ahora</button>
 
-  </div>
-
-  <button id="actualizar">↻ Actualizar ahora</button>
-
-  <h2>Mapa de estaciones</h2>
+    <h2>Mapa de estaciones</h2>
+    <input
+      id="buscarEstacion"
+      type="search"
+      placeholder="Buscar estación por nombre..."
+      autocomplete="off"
+    >
     <div id="map"></div>
+
     <h2>Estaciones</h2>
+    <div id="estaciones">
+      <p class="sin-resultados">Cargando estaciones...</p>
+    </div>
+  </main>
 
-  <div id="estaciones">
-    Cargando estaciones...
-  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-</main>
+  <script>
+    const URL_INFO =
+      "https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_information";
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    const URL_ESTADO =
+      "https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_status";
 
-<script>
+    const estado = document.getElementById("estado");
+    const bicis = document.getElementById("bicis");
+    const anclajes = document.getElementById("anclajes");
+    const contenedor = document.getElementById("estaciones");
+    const buscador = document.getElementById("buscarEstacion");
 
-const URL_INFO =
-"https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_information";
+    let estacionesActuales = [];
+    let marcadores = new Map();
+    let capaMarcadores = null;
+    let mapa = null;
 
-const URL_STATUS =
-"https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_status";
+    function iniciarMapa() {
+      if (typeof L === "undefined") {
+        throw new Error("No se ha podido cargar la biblioteca del mapa.");
+      }
 
-const mapaEstaciones = L.map("map").setView(
-    [41.6523, -4.7245], 13
-);
+      mapa = L.map("map").setView([41.6523, -4.7245], 13);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; OpenStreetMap'
-}).addTo(mapaEstaciones);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(mapa);
 
-const marcadores = L.layerGroup().addTo(mapaEstaciones);
-
-async function actualizar() {
-
-  const estado = document.getElementById("estado");
-  const lista = document.getElementById("estaciones");
-
-  estado.textContent = "Actualizando...";
-
-  try {
-
-    const [r1, r2] = await Promise.all([
-      fetch(URL_INFO),
-      fetch(URL_STATUS)
-    ]);
-
-    if (!r1.ok || !r2.ok) {
-      throw new Error("Error de conexión");
+      capaMarcadores = L.layerGroup().addTo(mapa);
     }
 
-    const [info, status] = await Promise.all([
-      r1.json(),
-      r2.json()
-    ]);
+    function crearPopup(estacion) {
+      const caja = document.createElement("div");
+      const nombre = document.createElement("strong");
+      const detalle = document.createElement("div");
 
-    const mapa = new Map(
-      status.data.stations.map(s => [
-        String(s.station_id), s
-      ])
-    );
+      nombre.textContent = estacion.name;
+      detalle.textContent =
+        estacion.bicis + " bicicletas · " + estacion.anclajes + " anclajes libres";
 
-    const datos = info.data.stations.map(e => {
+      caja.appendChild(nombre);
+      caja.appendChild(detalle);
+      return caja;
+    }
 
-      const s = mapa.get(String(e.station_id)) || {};
+    function dibujarEstaciones(estaciones) {
+      contenedor.replaceChildren();
+      capaMarcadores.clearLayers();
+      marcadores.clear();
 
-      return {
-        nombre: e.name || "Estación",
-        latitud: Number(e.lat),
-        longitud: Number(e.lon),
-        bicis: Number(s.num_bikes_available || 0),
-        anclajes: Number(s.num_docks_available || 0)
-      };
+      estaciones.forEach(estacion => {
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "estacion";
+        tarjeta.dataset.nombre = estacion.name.toLocaleLowerCase("es");
 
-    });
-
-    datos.sort((a, b) => b.bicis - a.bicis);
-
-    marcadores.clearLayers();
-
-    for (const e of datos) {
-        if (!Number.isFinite(e.latitud) ||
-            !Number.isFinite(e.longitud) ||
-            !e.latitud || !e.longitud) {
-            continue;
-        }
-
-        const color = e.bicis === 0
-            ? "#c62828"
-            : e.bicis <= 3
-                ? "#e69500"
-                : "#16803c";
-
-        const contenido = document.createElement("div");
-        const titulo = document.createElement("strong");
-        titulo.textContent = e.nombre;
+        const nombre = document.createElement("strong");
+        nombre.textContent = estacion.name;
 
         const detalle = document.createElement("div");
+        detalle.className = "detalle";
         detalle.textContent =
-            e.bicis + " bicicletas disponibles";
+          estacion.bicis + " bicicletas disponibles · " +
+          estacion.anclajes + " anclajes libres";
 
-        const anclajes = document.createElement("div");
-        anclajes.textContent =
-            e.anclajes + " anclajes libres";
+        tarjeta.appendChild(nombre);
+        tarjeta.appendChild(detalle);
 
-        contenido.append(titulo, detalle, anclajes);
+        tarjeta.addEventListener("click", () => {
+          const marcador = marcadores.get(estacion.id);
+          if (marcador) {
+            mapa.setView(marcador.getLatLng(), 16);
+            marcador.openPopup();
+          }
+        });
 
-        L.circleMarker([e.latitud, e.longitud], {
+        contenedor.appendChild(tarjeta);
+
+        const color = estacion.bicis === 0
+          ? "#d62828"
+          : estacion.bicis <= 3 ? "#f08c00" : "#087f5b";
+
+        const marcador = L.circleMarker(
+          [estacion.lat, estacion.lon],
+          {
             radius: 9,
             color: color,
             fillColor: color,
             fillOpacity: 0.85,
             weight: 2
-        })
-        .bindPopup(contenido)
-        .addTo(marcadores);
-    }
+          }
+        );
 
-    document.getElementById("bicis").textContent =
-      datos.reduce((a, e) => a + e.bicis, 0);
+        marcador.bindPopup(crearPopup(estacion));
+        marcador.addTo(capaMarcadores);
+        marcadores.set(estacion.id, marcador);
+      });
 
-    document.getElementById("anclajes").textContent =
-      datos.reduce((a, e) => a + e.anclajes, 0);
-
-    lista.innerHTML = "";
-
-    for (const e of datos) {
-
-      const tarjeta = document.createElement("div");
-      tarjeta.className = "estacion";
-
-      const nombre = document.createElement("div");
-
-      nombre.style.fontWeight = "bold";
-      nombre.textContent = e.nombre;
-
-      const detalle = document.createElement("div");
-
-      detalle.style.fontSize = "12px";
-      detalle.style.marginTop = "6px";
-      detalle.textContent =
-        e.anclajes + " anclajes libres";
-
-      nombre.appendChild(detalle);
-
-      const disponible = document.createElement("div");
-
-      disponible.className = "disponibilidad";
-
-      if (e.bicis === 0) {
-        disponible.classList.add("rojo");
-      } else if (e.bicis <= 3) {
-        disponible.classList.add("naranja");
-      } else {
-        disponible.classList.add("verde");
+      if (estaciones.length === 0) {
+        const mensaje = document.createElement("p");
+        mensaje.className = "sin-resultados";
+        mensaje.textContent = "No se han encontrado estaciones.";
+        contenedor.appendChild(mensaje);
       }
-
-      disponible.textContent = e.bicis + " bicis";
-
-      tarjeta.appendChild(nombre);
-      tarjeta.appendChild(disponible);
-
-      lista.appendChild(tarjeta);
-
     }
 
-    estado.textContent =
-      "Actualizado: " +
-      new Date().toLocaleTimeString("es-ES");
+    async function actualizar() {
+      estado.textContent = "Actualizando datos...";
 
-  } catch (error) {
+      try {
+        const respuestas = await Promise.all([
+          fetch(URL_INFO, { cache: "no-store" }),
+          fetch(URL_ESTADO, { cache: "no-store" })
+        ]);
 
-    estado.textContent = "Error de conexión";
+        if (!respuestas[0].ok || !respuestas[1].ok) {
+          throw new Error("El servidor de BIKI no ha respondido correctamente.");
+        }
 
-    lista.textContent =
-      "No se pudieron cargar las estaciones.";
+        const [datosInfo, datosEstado] = await Promise.all([
+          respuestas[0].json(),
+          respuestas[1].json()
+        ]);
 
-    console.error(error);
+        const informacion = datosInfo.data.stations;
+        const estados = datosEstado.data.stations;
 
-  }
+        const estadosPorId = new Map(
+          estados.map(item => [String(item.station_id), item])
+        );
 
-}
+        estacionesActuales = informacion
+          .map(info => {
+            const actual = estadosPorId.get(String(info.station_id));
+            if (!actual) return null;
 
-document.getElementById("actualizar")
-  .addEventListener("click", actualizar);
+            return {
+              id: String(info.station_id),
+              name: info.name || "Estación sin nombre",
+              lat: Number(info.lat),
+              lon: Number(info.lon),
+              bicis: Number(actual.num_bikes_available || 0),
+              anclajes: Number(actual.num_docks_available || 0)
+            };
+          })
+          .filter(item =>
+            item &&
+            Number.isFinite(item.lat) &&
+            Number.isFinite(item.lon)
+          )
+          .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
-actualizar();
+        const totalBicis = estacionesActuales.reduce(
+          (total, item) => total + item.bicis, 0
+        );
 
-setInterval(actualizar, 30000);
+        const totalAnclajes = estacionesActuales.reduce(
+          (total, item) => total + item.anclajes, 0
+        );
 
-</script>
+        bicis.textContent = totalBicis;
+        anclajes.textContent = totalAnclajes;
 
+        dibujarEstaciones(estacionesActuales);
+        filtrarEstaciones();
 
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js")
-      .then(() => console.log("BIKI: service worker registrado"))
-      .catch(error => console.error("Error SW:", error));
-  });
-}
-</script>
+        estado.textContent =
+          "Datos actualizados: " +
+          new Date().toLocaleTimeString("es-ES") +
+          " · " + estacionesActuales.length + " estaciones";
+      } catch (error) {
+        console.error("Error al actualizar BIKI:", error);
+        estado.textContent = "Error de conexión: " + error.message;
+      }
+    }
 
+    function filtrarEstaciones() {
+      const texto = buscador.value.trim().toLocaleLowerCase("es");
+      const tarjetas = contenedor.querySelectorAll(".estacion");
+      let primeraCoincidencia = null;
+
+      tarjetas.forEach(tarjeta => {
+        const coincide = tarjeta.dataset.nombre.includes(texto);
+        tarjeta.style.display = coincide ? "" : "none";
+
+        if (coincide && !primeraCoincidencia) {
+          primeraCoincidencia = tarjeta;
+        }
+      });
+
+      if (texto && primeraCoincidencia) {
+        const estacion = estacionesActuales.find(
+          item => item.name.toLocaleLowerCase("es").includes(texto)
+        );
+
+        if (estacion) {
+          const marcador = marcadores.get(estacion.id);
+          if (marcador) {
+            mapa.setView(marcador.getLatLng(), 16);
+            marcador.openPopup();
+          }
+        }
+      }
+    }
+
+    document.getElementById("actualizar").addEventListener("click", actualizar);
+    buscador.addEventListener("input", filtrarEstaciones);
+
+    try {
+      iniciarMapa();
+      actualizar();
+      setInterval(actualizar, 30000);
+    } catch (error) {
+      console.error(error);
+      estado.textContent = "Error al iniciar la página: " + error.message;
+    }
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(() => console.log("BIKI: service worker registrado"))
+          .catch(error => console.error("Error del service worker:", error));
+      });
+    }
+  </script>
 </body>
 </html>
