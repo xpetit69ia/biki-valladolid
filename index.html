@@ -9,6 +9,9 @@
 
 <meta name="theme-color" content="#176b45">
 
+<link rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
 <style>
 * {
   box-sizing: border-box;
@@ -103,6 +106,14 @@ button {
   color: #c62828;
 }
 
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 16px;
+    margin: 15px 0 25px;
+    z-index: 1;
+}
+
 #estado {
   font-size: 13px;
   margin-top: 12px;
@@ -137,13 +148,17 @@ button {
 
   <button id="actualizar">↻ Actualizar ahora</button>
 
-  <h2>Estaciones</h2>
+  <h2>Mapa de estaciones</h2>
+    <div id="map"></div>
+    <h2>Estaciones</h2>
 
   <div id="estaciones">
     Cargando estaciones...
   </div>
 
 </main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 
@@ -152,6 +167,16 @@ const URL_INFO =
 
 const URL_STATUS =
 "https://valladolid.publicbikesystem.net/customer/gbfs/v2/es/station_status";
+
+const mapaEstaciones = L.map("map").setView(
+    [41.6523, -4.7245], 13
+);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap'
+}).addTo(mapaEstaciones);
+
+const marcadores = L.layerGroup().addTo(mapaEstaciones);
 
 async function actualizar() {
 
@@ -188,6 +213,8 @@ async function actualizar() {
 
       return {
         nombre: e.name || "Estación",
+        latitud: Number(e.lat),
+        longitud: Number(e.lon),
         bicis: Number(s.num_bikes_available || 0),
         anclajes: Number(s.num_docks_available || 0)
       };
@@ -195,6 +222,46 @@ async function actualizar() {
     });
 
     datos.sort((a, b) => b.bicis - a.bicis);
+
+    marcadores.clearLayers();
+
+    for (const e of datos) {
+        if (!Number.isFinite(e.latitud) ||
+            !Number.isFinite(e.longitud) ||
+            !e.latitud || !e.longitud) {
+            continue;
+        }
+
+        const color = e.bicis === 0
+            ? "#c62828"
+            : e.bicis <= 3
+                ? "#e69500"
+                : "#16803c";
+
+        const contenido = document.createElement("div");
+        const titulo = document.createElement("strong");
+        titulo.textContent = e.nombre;
+
+        const detalle = document.createElement("div");
+        detalle.textContent =
+            e.bicis + " bicicletas disponibles";
+
+        const anclajes = document.createElement("div");
+        anclajes.textContent =
+            e.anclajes + " anclajes libres";
+
+        contenido.append(titulo, detalle, anclajes);
+
+        L.circleMarker([e.latitud, e.longitud], {
+            radius: 9,
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.85,
+            weight: 2
+        })
+        .bindPopup(contenido)
+        .addTo(marcadores);
+    }
 
     document.getElementById("bicis").textContent =
       datos.reduce((a, e) => a + e.bicis, 0);
